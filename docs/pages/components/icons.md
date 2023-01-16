@@ -7,13 +7,13 @@ SVG アイコンを [Custom Elements](https://developer.mozilla.org/ja/docs/Web/
 npm
 
 ```bash
-npm i --save-dev @charcoal-ui/icons
+npm i @charcoal-ui/icons
 ```
 
 yarn
 
 ```bash
-yarn add -D @charcoal-ui/icons
+yarn add @charcoal-ui/icons
 ```
 
 ### 使い方
@@ -47,11 +47,10 @@ TypeScript の型定義がグローバルにインストールされるので、
 
 その場合も名前の形式は `${size}/${name}` である必要があります。
 
-TypeScript 環境下では、`KnownIconType` という型を拡張することで、カスタムアイコンに対しても補完が効
-くようになります。
+TypeScript 環境下では、`KnownIconType` という型を拡張することで、カスタムアイコンに対しても補完が効くようになります。
 
 ```ts
-import PixivIcon from '@charcoal-ui/icons'
+import { PixivIcon } from '@charcoal-ui/icons'
 import NewFeature from './NewFeature.svg'
 
 PixivIcon.extend({
@@ -92,3 +91,58 @@ export const Icon: React.FC<Props> = ({ className, ...props }) => (
 ### 収録アイコン
 
 [Storybook](https://pixiv.github.io/charcoal?path=/story/icons-pixivicon-pixiv-icon--default) をご覧ください
+
+### Next.js と組み合わせる場合
+
+Next.js のデフォルトの webpack 設定では svg が正しく import されないことがあります。
+
+少なくとも `@charcoal-ui/icons` 以下の svg については `type: 'asset'` で読むようにしてください。
+
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/u,
+      type: 'asset',
+    })
+
+    return config
+  },
+}
+```
+
+### Vite と組み合わせる場合
+
+`@charcoal-ui/icons` は内部で SVG を dynamic import しています。
+
+Vite はデフォルトで dynamic import をサポートしますが、`node_modules` 以下のファイルは `import()` の対象外にする設定がされているため、ここを変更する必要があります。
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  plugins: [react(), charcoalIcons()],
+})
+
+function charcoalIcons(): PluginOption {
+  return {
+    name: 'charcoal-icons',
+    config() {
+      return {
+        optimizeDeps: {
+          // 開発環境の Pre-bundling で壊れる
+          // https://vitejs.dev/guide/dep-pre-bundling.html#the-why
+          exclude: ['@charcoal-ui/icons'],
+        },
+        build: {
+          rollupOptions: {
+            // dynamicImport がビルド時に解決されない
+            // https://vitejs.dev/config/#build-dynamicimportvarsoptions
+            plugins: [dynamicImport()],
+          },
+        },
+      }
+    },
+  }
+}
+```
